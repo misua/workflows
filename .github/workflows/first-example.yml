@@ -9,6 +9,9 @@ jobs:
         - name: welcome msg
           run: echo "my first github actions job"
 
+        - name: checkout code
+          uses: actions/checkout@main
+
         - name: List files
           run: ls
 
