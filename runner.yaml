@@ -1,0 +1,67 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: github-runner
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: github-runner
+  template:
+    metadata:
+      labels:
+        app: github-runner
+    spec:
+      containers:
+      - name: github-runner
+        image: myoung34/github-runner:latest
+        env:
+        - name: REPO_URL
+          value: "https://github.com/misua/workflows"
+        - name: RUNNER_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: RUNNER_TOKEN_FILE
+          value: "/etc/github/access-token"
+        - name: RUNNER_WORKDIR
+          value: "/tmp/runner/work"
+        - name: LABELS
+          value: "self-hosted,k8s"
+        volumeMounts:
+        - name: github-token
+          mountPath: /etc/github
+          readOnly: true
+        - name: buildkitsock
+          mountPath: /run/buildkit
+        - name: work
+          mountPath: /tmp/runner/work
+      volumes:
+      - name: github-token
+        secret:
+          secretName: github-secret
+      - name: buildkitsock
+        emptyDir: {}
+      - name: work
+        emptyDir: {}
+
+---
+# Debug Pod
+apiVersion: v1
+kind: Pod
+metadata:
+  name: debug-pod
+spec:
+  containers:
+  - name: debug
+    image: busybox
+    command: ['sh', '-c', 'while true; do sleep 30; done;']
+    volumeMounts:
+    - name: github-token
+      mountPath: /etc/github
+      readOnly: true
+  volumes:
+  - name: github-token
+    secret:
+      secretName: github-secret
