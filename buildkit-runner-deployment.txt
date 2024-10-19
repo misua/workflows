@@ -1,0 +1,147 @@
+---
+# GitHub Runner ServiceAccount
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: github-runner-sa
+  labels:
+    app: github-actions
+    component: runner
+---
+# GitHub Runner Role
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-runner-role
+  labels:
+    app: github-actions
+    component: runner
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources: ["deployments"]
+  verbs: ["get", "list", "watch", "update", "patch"]
+---
+# GitHub Runner RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-runner-rolebinding
+  labels:
+    app: github-actions
+    component: runner
+subjects:
+- kind: ServiceAccount
+  name: github-runner-sa
+roleRef:
+  kind: Role
+  name: github-runner-role
+  apiGroup: rbac.authorization.k8s.io
+---
+# GitHub Runner Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: github-runner
+  labels:
+    app: github-actions
+    component: runner
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: github-actions
+      component: runner
+  template:
+    metadata:
+      labels:
+        app: github-actions
+        component: runner
+    spec:
+      serviceAccountName: github-runner-sa
+      containers:
+      - name: github-runner
+        image: myoung34/github-runner:latest
+        env:
+        - name: REPO_URL
+          value: "https://github.com/misua/workflows"
+        - name: ACCESS_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: github-secret
+              key: GITHUB_TOKEN
+        - name: RUNNER_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: RUNNER_WORKDIR
+          value: "/tmp/runner/work"
+        - name: LABELS
+          value: "self-hosted,k8s"
+        volumeMounts:
+        - name: work
+          mountPath: /tmp/runner/work
+      volumes:
+      - name: work
+        emptyDir: {}
+---
+# BuildKit Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: buildkitd
+  labels:
+    app: github-actions
+    component: buildkit
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: github-actions
+      component: buildkit
+  template:
+    metadata:
+      labels:
+        app: github-actions
+        component: buildkit
+      annotations:
+        container.apparmor.security.beta.kubernetes.io/buildkitd: unconfined
+    spec:
+      containers:
+      - name: buildkitd
+        image: moby/buildkit:master-rootless
+        args:
+        - --addr
+        - tcp://0.0.0.0:1234
+        - --oci-worker-no-process-sandbox
+        ports:
+        - containerPort: 1234
+        securityContext:
+          privileged: false
+          runAsUser: 1000
+          runAsGroup: 1000
+        volumeMounts:
+        - name: buildkitsock
+          mountPath: /run/buildkit
+      volumes:
+      - name: buildkitsock
+        emptyDir: {}
+---
+# BuildKit Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: buildkitd
+  labels:
+    app: github-actions
+    component: buildkit
+spec:
+  selector:
+    app: github-actions
+    component: buildkit
+  ports:
+    - protocol: TCP
+      port: 1234
+      targetPort: 1234
