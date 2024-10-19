@@ -14,7 +14,11 @@ test workflow
 [![runner/buildkit pods](img/pods.png)](img/pods.png)
 
 
-Considerations:
+If you want to use and test this
+
+1.] you need to create a secret that uses PAT for gh access 
+
+Future Considerations:
 
 - Persistence: If you need persistent storage for BuildKit, consider adding a persistent volume claim.
 
