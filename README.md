@@ -6,10 +6,12 @@ test workflow
 
 - both can scale up using hpa
 
-[![hpa enabled](hpa.png)](hpa.png)
+[![hpa enabled](hpa.png)]((img/hpa.png))
+
+<\br>
 
 
-[![running runner & buildkit pods](pods.png)](pods.png)
+[![running runner & buildkit pods]](img/pods.png)
 
 
 
