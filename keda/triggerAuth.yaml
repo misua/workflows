@@ -1,0 +1,9 @@
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: github-token
+spec:
+  secretTargetRef:
+    - parameter: personalAccessToken
+      name: github-secret
+      key: GITHUB_TOKEN

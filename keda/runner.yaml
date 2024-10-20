@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: github-runner
+  labels:
+    app: github-actions
+    component: runner
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: github-actions
+      component: runner
+  template:
+    metadata:
+      labels:
+        app: github-actions
+        component: runner
+    spec:
+      containers:
+      - name: github-runner
+        image: myoung34/github-runner:latest
+        env:
+        - name: REPO_URL
+          value: "https://github.com/misua/workflows"
+        - name: ACCESS_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: github-secret
+              key: GITHUB_TOKEN
+        - name: RUNNER_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: RUNNER_WORKDIR
+          value: "/tmp/runner/work"
+        - name: LABELS
+          value: "self-hosted,k8s"
+        volumeMounts:
+        - name: work
+          mountPath: /tmp/runner/work
+      volumes:
+      - name: work
+        emptyDir: {}
