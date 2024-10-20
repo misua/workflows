@@ -4,7 +4,7 @@ test workflow
 - using self hosted arc runners
 - using buildkit running on separate container
 
-- both can scale up using hpa
+- both can scale up using hpa(just realized its not pulling cpu metrics, will need to find alternatives)
 
 [![hpa enabled](img/hpa.png)](img/hpa.png)
 
